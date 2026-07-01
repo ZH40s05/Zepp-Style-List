@@ -861,6 +861,19 @@ export class ListPage {
         continue
       }
 
+      let imageFocusSet = null
+      if (r.kind === 'image' && r.selectable !== false) {
+        const outer = this.vc.createWidget(widget.STROKE_RECT, {
+          x: r._x, y: r._y, w: r.width, h: r.imageH, radius: r.radius, line_width: scaledValue(7, this.layout.scale), color: COLOR.footerBtnOuter,
+        })
+        const inner = this.vc.createWidget(widget.STROKE_RECT, {
+          x: r._x, y: r._y, w: r.width, h: r.imageH, radius: r.radius, line_width: this.layout.imageFocusLine, color: COLOR.footerBtnInner,
+        })
+        outer.setProperty(prop.VISIBLE, false)
+        inner.setProperty(prop.VISIBLE, false)
+        imageFocusSet = (on) => { outer.setProperty(prop.VISIBLE, on); inner.setProperty(prop.VISIBLE, on) }
+      }
+
       let mask
       if (r.kind === 'footerBtn') {
         mask = this.vc.createWidget(widget.FILL_RECT, {
@@ -892,15 +905,7 @@ export class ListPage {
       if (r.kind === 'footerBtn') {
         entry.setFocus = r.setFocus
       } else if (r.kind === 'image' && r.selectable !== false) {
-        const outer = this.vc.createWidget(widget.STROKE_RECT, {
-          x: r._x, y: r._y, w: r.width, h: r.imageH, radius: r.radius, line_width: scaledValue(7, this.layout.scale), color: COLOR.footerBtnOuter,
-        })
-        const inner = this.vc.createWidget(widget.STROKE_RECT, {
-          x: r._x, y: r._y, w: r.width, h: r.imageH, radius: r.radius, line_width: this.layout.imageFocusLine, color: COLOR.footerBtnInner,
-        })
-        outer.setProperty(prop.VISIBLE, false)
-        inner.setProperty(prop.VISIBLE, false)
-        entry.setFocus = (on) => { outer.setProperty(prop.VISIBLE, on); inner.setProperty(prop.VISIBLE, on) }
+        entry.setFocus = imageFocusSet
       } else if (r.kind === 'image') {
         entry.setFocus = () => {}
       } else {
