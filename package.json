@@ -1,7 +1,7 @@
 {
   "name": "@zh40s05/zepp-official-list",
-  "version": "0.1.1",
-  "description": "ZeppOS 官方风格列表页面控件 / Official-style list page control for ZeppOS",
+  "version": "0.1.2",
+  "description": "ZeppOS 官方风格列表页面控件 / Official-style ZeppOS list page control with focus, touch, and crown scrolling",
   "main": "zolist.js",
   "repository": {
     "type": "git",
@@ -26,7 +26,10 @@
     "list",
     "ui",
     "watch",
-    "Amazfit"
+    "Amazfit",
+    "focus",
+    "scroll",
+    "crown"
   ],
   "author": "ZHAO",
   "license": "MIT"

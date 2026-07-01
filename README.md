@@ -8,12 +8,12 @@
 
 ### 是什么
 
-**zolist** 将 ZeppOS 官方列表页常见的页面结构封装成一个页面级组合控件：
+**zolist** 将 ZeppOS 官方列表页常见的页面结构封装成一个页面级组合控件，适合需要官方风格列表、物理按键焦点、触屏点击、表冠/滚轮滚动和圆屏/方屏适配的小程序页面：
 
 1. **官方风格行布局** — `TEXT` / `SWITCH` / `CHECKBOX` / `RADIO` / `CATEGORY` / `FOOTER` / `IMAGE`
 2. **物理按键焦点** — UP/DOWN 环绕导航，SELECT/HOME 触发当前项
 3. **触屏反馈** — 可点击项带按下遮罩，图片项带独立双描边焦点
-4. **滚动落焦** — 手指滚动结束后，焦点落到屏幕中心附近的条目
+4. **滚动落焦** — 手指滑动或表冠/滚轮滚动结束后，焦点落到屏幕中心附近的条目
 5. **圆屏/方屏自动适配** — 根据 `getDeviceInfo().screenShape` 自动选择 layout profile，并按屏幕宽度缩放
 
 它不是 ZeppOS 官方内置 widget，但使用方式刻意接近官方 `createWidget(widget.X, Param)`：
@@ -89,6 +89,11 @@ Page({
 | `header` | 页头配置；传 `false` 不创建 header | 不创建 |
 | `footer` | 页脚配置；传 `false` 不创建 footer | `{}` |
 | `hideStatusBar` | 创建页面时调用 `setStatusBarVisible(false)` 隐藏系统状态栏；传 `false` 保持状态栏当前可见性 | `true` |
+| `touchScrollStep` | 触屏 `scroll_frame_func.yoffset` 到内部滚动位置的倍率；调节手指滑动落焦距离 | `1` |
+| `crownEnable` | 是否注册 `onDigitalCrown` 处理表冠/滚轮滚动 | `true` |
+| `crownStep` | 表冠/滚轮 `degree` 到滚动像素的倍率；数值越大滚轮滚动越快 | `2.5` |
+| `crownSettleMs` | 表冠/滚轮停止后等待多久重建焦点 | `180` |
+| `debugScroll` | 输出 `[ZOList.scroll]` 诊断日志 | `false` |
 
 公开 API 不提供 `x/y/w/h`。列表始终从 `x=0, y=0` 开始，宽高由当前屏幕 profile 决定。若你选择 `hideStatusBar: false` 并需要避让状态栏，可以在列表顶部插入 `SPACER`。
 
@@ -99,6 +104,15 @@ const list = createListPage({
 })
 
 list.createWidget(listWidget.SPACER, { h: 64 })
+```
+
+滚动倍率可直接在 `createListPage()` 中调整：
+
+```js
+const list = createListPage({
+  touchScrollStep: 1,  // 触屏滑动倍率，默认 1
+  crownStep: 2.5,     // 表冠/滚轮倍率，默认 2.5
+})
 ```
 
 ### HeaderParam
@@ -370,12 +384,12 @@ zeus build
 
 ### What
 
-**zolist** is an official-style ZeppOS list page control. It wraps common list page building blocks into one page-level component:
+**zolist** is an official-style ZeppOS list page control for mini-program pages that need native-looking rows, physical-key focus, touch feedback, crown/wheel scrolling, and round/square screen adaptation. It wraps common list page building blocks into one page-level component:
 
 1. Official-style rows: `TEXT`, `SWITCH`, `CHECKBOX`, `RADIO`, `CATEGORY`, `FOOTER`, `IMAGE`
 2. Physical-key focus navigation
 3. Touch press feedback
-4. Scroll-center focus landing
+4. Scroll-center focus landing after touch or crown/wheel scrolling
 5. Automatic round/square screen adaptation
 
 It is not a built-in ZeppOS widget, but the API intentionally resembles `createWidget(widget.X, Param)`.
@@ -437,8 +451,22 @@ Page({
 | `header` | Header config; pass `false` to disable header | disabled |
 | `footer` | Footer config; pass `false` to disable footer | `{}` |
 | `hideStatusBar` | Calls `setStatusBarVisible(false)` on creation; pass `false` to keep current status-bar visibility | `true` |
+| `touchScrollStep` | Multiplier from touch `scroll_frame_func.yoffset` to internal scroll position; tune touch-scroll focus landing | `1` |
+| `crownEnable` | Register `onDigitalCrown` for crown/wheel scrolling | `true` |
+| `crownStep` | Multiplier from crown/wheel `degree` to scroll pixels; larger values scroll faster | `2.5` |
+| `crownSettleMs` | Delay before rebuilding focus after crown/wheel input settles | `180` |
+| `debugScroll` | Print `[ZOList.scroll]` diagnostic logs | `false` |
 
 The public API does not expose `x/y/w/h`. The list always starts at `x=0, y=0` and uses the active layout profile size. If you keep the status bar visible, insert a top `SPACER` when needed.
+
+Tune scroll multipliers in `createListPage()`:
+
+```js
+const list = createListPage({
+  touchScrollStep: 1,  // touch drag multiplier, default 1
+  crownStep: 2.5,     // crown/wheel multiplier, default 2.5
+})
+```
 
 ### Widgets
 

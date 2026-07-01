@@ -6,7 +6,7 @@
  */
 import { createWidget, widget, align, text_style, prop, event, getTextLayout, getImageInfo, setStatusBarVisible } from '@zos/ui'
 import {
-  onKey, offKey, KEY_UP, KEY_DOWN, KEY_SELECT, KEY_HOME, KEY_BACK,
+  onKey, offKey, onDigitalCrown, offDigitalCrown, KEY_UP, KEY_DOWN, KEY_SELECT, KEY_HOME, KEY_BACK,
   KEY_EVENT_CLICK, KEY_EVENT_PRESS, KEY_EVENT_RELEASE,
 } from '@zos/interaction'
 import { push as routerPush } from '@zos/router'
@@ -449,25 +449,45 @@ export class ListPage {
     this._pressTimer = null
     this._clickFallback = true
     this._keyCb = null
+    this._crownCb = null
+    this._crownTimer = null
+    this.crownEnable = param.crownEnable !== false
+    this.crownStep = param.crownStep === undefined ? 2.5 : param.crownStep
+    this.crownSettleMs = param.crownSettleMs === undefined ? 180 : param.crownSettleMs
+    this.touchScrollStep = param.touchScrollStep === undefined ? 1 : param.touchScrollStep
     this._scrollAnim = null
     this._scrollPos = 0
     this._dragging = false
     this._keyScrolling = false
     this._mounted = false
     this._disposed = false
+    this.debugScroll = !!param.debugScroll
+    this._scrollDebugFrame = 0
 
     this.vc = createWidget(widget.VIEW_CONTAINER, {
       x: this.x, y: this.y, w: this.w, h: this.h, scroll_enable: 1,
-      scroll_frame_func: () => {
+      scroll_frame_func: (frame) => {
+        if (this._keyScrolling) { this._debugScroll('frame_skip_key', frame); return }
+        const frameScrollY = this._syncScrollFromFrame(frame)
+        this._scrollDebugFrame++
+        if (this._scrollDebugFrame <= 5 || this._scrollDebugFrame % 10 === 0) {
+          this._debugScroll('frame', frame, 'frame_count=' + this._scrollDebugFrame + ' frame_scroll_y=' + this._debugValue(frameScrollY))
+        }
         if (this._activeTap) { this._activeTap.cancel(); this._activeTap = null }
-        if (this._keyScrolling) return
-        if (!this._dragging) { this._dragging = true; this._hideFocus() }
+        if (!this._dragging) {
+          this._dragging = true
+          this._debugScroll('drag_start', frame)
+          this._hideFocus()
+        }
       },
-      scroll_complete_func: () => {
-        if (this._keyScrolling) return
-        if (!this._dragging) return
+      scroll_complete_func: (frame) => {
+        if (this._keyScrolling) { this._debugScroll('complete_skip_key', frame); return }
+        const frameScrollY = this._syncScrollFromFrame(frame)
+        this._debugScroll('complete_enter', frame, 'frame_scroll_y=' + this._debugValue(frameScrollY))
+        if (!this._dragging) { this._debugScroll('complete_skip_not_dragging', frame); return }
         this._dragging = false
         const idx = this._nearestToCenter()
+        this._debugScroll('complete_nearest', frame, 'idx=' + idx)
         if (idx >= 0) this._setFocus(idx, false)
       },
     })
@@ -519,7 +539,9 @@ export class ListPage {
 
   _release() {
     if (this._keyCb) { offKey(); this._keyCb = null }
+    if (this._crownCb) { try { offDigitalCrown() } catch (e) {}; this._crownCb = null }
     if (this._pressTimer) { clearTimeout(this._pressTimer); this._pressTimer = null }
+    if (this._crownTimer) { clearTimeout(this._crownTimer); this._crownTimer = null }
     if (this._scrollAnim) { clearInterval(this._scrollAnim); this._scrollAnim = null }
   }
 
@@ -933,8 +955,42 @@ export class ListPage {
     if (this._keyCb) return this
     this._keyCb = (key, ev) => this._onKey(key, ev)
     onKey({ callback: this._keyCb })
+    if (this.crownEnable && !this._crownCb) {
+      this._crownCb = (key, degree) => this._onCrown(key, degree)
+      try {
+        onDigitalCrown({ callback: this._crownCb })
+      } catch (e) {
+        this._debugScroll('crown_register_error', undefined, 'err=' + this._debugValue(e))
+        this._crownCb = null
+      }
+    }
     if (this.focusables.length) this._setFocus(0, false)
     return this
+  }
+
+  _onCrown(key, degree) {
+    if (!this.crownEnable || this.focusables.length === 0 || typeof degree !== 'number') return false
+    if (this._scrollAnim) { clearInterval(this._scrollAnim); this._scrollAnim = null }
+    if (this._activeTap) { this._activeTap.cancel(); this._activeTap = null }
+    if (!this._dragging) {
+      this._dragging = true
+      this._hideFocus()
+    }
+
+    const target = this._getScrollY() - degree * this.crownStep
+    this._setScrollY(target)
+    this._debugScroll('crown', undefined, 'crown_key=' + this._debugValue(key) + ' degree=' + degree + ' target=' + target)
+
+    if (this._crownTimer) clearTimeout(this._crownTimer)
+    this._crownTimer = setTimeout(() => {
+      this._crownTimer = null
+      if (!this._dragging) return
+      this._dragging = false
+      const idx = this._nearestToCenter()
+      this._debugScroll('crown_settle', undefined, 'idx=' + idx)
+      if (idx >= 0) this._setFocus(idx, false)
+    }, this.crownSettleMs)
+    return true
   }
 
   _onKey(key, ev) {
@@ -991,6 +1047,7 @@ export class ListPage {
 
   _setFocus(idx, scroll = true) {
     if (idx < 0 || idx >= this.focusables.length) return
+    this._debugScroll('set_focus', undefined, 'idx=' + idx + ' scroll=' + (scroll ? 1 : 0))
     if (this.focusIdx >= 0 && this.focusIdx !== idx && this.focusables[this.focusIdx]) {
       this.focusables[this.focusIdx].setFocus(false)
     }
@@ -1002,45 +1059,96 @@ export class ListPage {
   }
 
   _hideFocus() {
+    this._debugScroll('hide_focus')
     if (this.focusIdx >= 0 && this.focusables[this.focusIdx]) {
       this.focusables[this.focusIdx].setFocus(false)
     }
   }
 
-  _getScrollY() {
-    let posY
-    try {
-      if (typeof this.vc.pos_y === 'number') posY = this.vc.pos_y
-    } catch (e) {}
-    if (typeof posY !== 'number') {
-      try {
-        const more = this.vc.getProperty(prop.MORE, {}) || {}
-        if (typeof more.pos_y === 'number') posY = more.pos_y
-      } catch (e) {}
+  _debugValue(v) {
+    if (v === undefined) return 'undefined'
+    if (v === null) return 'null'
+    if (typeof v === 'object') {
+      try { return JSON.stringify(v) } catch (e) { return '[object]' }
     }
-    if (typeof posY !== 'number') return this._scrollPos || 0
-    this._scrollPos = Math.max(0, -posY)
+    return String(v)
+  }
+
+  _readScrollMorePos() {
+    try {
+      const more = this.vc.getProperty(prop.MORE, {}) || {}
+      if (typeof more.pos_y === 'number') return { posY: more.pos_y, state: 'ok' }
+      return { posY: undefined, state: 'missing' }
+    } catch (e) {
+      return { posY: undefined, state: 'error:' + this._debugValue(e) }
+    }
+  }
+
+  _debugScroll(tag, frame, extra = '') {
+    if (!this.debugScroll) return
+    const read = this._readScrollMorePos()
+    const scrollY = typeof read.posY === 'number' ? Math.max(0, -read.posY) : 'na'
+    const frameText = frame === undefined ? '' : ' frame=' + this._debugValue(frame)
+    console.log(
+      '[ZOList.scroll] ' + tag +
+      frameText +
+      ' more_pos_y=' + this._debugValue(read.posY) +
+      ' more_state=' + read.state +
+      ' more_scroll_y=' + scrollY +
+      ' cache=' + Math.round(this._scrollPos || 0) +
+      ' focus=' + this.focusIdx +
+      ' dragging=' + (this._dragging ? 1 : 0) +
+      ' key=' + (this._keyScrolling ? 1 : 0) +
+      (extra ? ' ' + extra : '')
+    )
+  }
+
+  _clampScrollY(v) {
+    const maxScroll = Math.max(0, this.cursor - this.h)
+    return Math.max(0, Math.min(v || 0, maxScroll))
+  }
+
+  _syncScrollFromFrame(frame) {
+    if (!frame || typeof frame.yoffset !== 'number') return undefined
+    this._scrollPos = this._clampScrollY(-frame.yoffset * this.touchScrollStep)
+    return this._scrollPos
+  }
+
+  _getScrollY() {
+    this._scrollPos = this._clampScrollY(this._scrollPos || 0)
     return this._scrollPos
   }
 
   _setScrollY(v) {
-    this._scrollPos = Math.max(0, v || 0)
+    this._scrollPos = this._clampScrollY(v)
     const posY = -Math.round(this._scrollPos)
     try {
       this.vc.setProperty(prop.MORE, { pos_y: posY })
+      this._debugScroll('set_scroll', undefined, 'target_scroll_y=' + Math.round(this._scrollPos) + ' target_pos_y=' + posY)
     } catch (e) {
-      try { this.vc.pos_y = posY } catch (err) {}
+      this._debugScroll('set_scroll_error', undefined, 'target_scroll_y=' + Math.round(this._scrollPos) + ' target_pos_y=' + posY + ' err=' + this._debugValue(e))
     }
   }
 
   _nearestToCenter() {
-    const centerY = this._getScrollY() + this.h / 2
+    const scrollY = this._getScrollY()
+    const centerY = scrollY + this.h / 2
     let best = -1, bestD = Infinity
     for (let i = 0; i < this.focusables.length; i++) {
       const f = this.focusables[i]
       const d = Math.abs((f.focusTop + f.focusH / 2) - centerY)
       if (d < bestD) { bestD = d; best = i }
     }
+    const f = best >= 0 ? this.focusables[best] : null
+    this._debugScroll(
+      'nearest',
+      undefined,
+      'scroll_y=' + scrollY +
+      ' center_y=' + centerY +
+      ' idx=' + best +
+      ' dist=' + bestD +
+      (f ? ' focus_top=' + f.focusTop + ' focus_h=' + f.focusH : '')
+    )
     return best
   }
 
@@ -1056,6 +1164,7 @@ export class ListPage {
     this._scrollPos = this._getScrollY()
     this._keyScrolling = true
     this._dragging = false
+    this._debugScroll('animate_start', undefined, 'target=' + target)
     const step = () => {
       this._scrollPos += (target - this._scrollPos) * 0.35
       const done = Math.abs(target - this._scrollPos) < 0.5
@@ -1065,6 +1174,7 @@ export class ListPage {
         clearInterval(this._scrollAnim)
         this._scrollAnim = null
         this._keyScrolling = false
+        this._debugScroll('animate_done', undefined, 'target=' + target)
       }
     }
     this._scrollAnim = setInterval(step, 16)
