@@ -303,6 +303,12 @@ list.createWidget(listWidget.TEXT, {
 
 `list.push()` 会保存当前 `scrollY` 和 `focusIndex`。如果 ZeppOS 返回时重建原页面，`mount()` 会自动恢复并消费这条记录。
 
+### Modal 与覆盖层
+
+不要在已经创建并 `mount()` 了 `ListPage` 的同一 page 中直接调用 `createModal()`。`ListPage` 会注册物理按键、触屏点击和焦点状态，modal 也是独立按键/覆盖层控件；二者在同一个 page 内同时存在时，容易出现按键事件或残留点击互相抢占。
+
+推荐做法是：列表页只负责 `list.push()` 跳转，弹窗放到一个不创建 `ListPage` 的独立子页面中，并在子页面 `build()` 时创建并显示 modal；关闭、取消或确认后再 `back()` / `exit()`。
+
 ### getProperty / setProperty
 
 支持常用非结构属性即时更新：
@@ -460,6 +466,12 @@ Page({
 The public API does not expose `x/y/w/h`. The list always starts at `x=0, y=0` and uses the active layout profile size. If you keep the status bar visible, insert a top `SPACER` when needed.
 
 Keep the default footer (`footer: {}`) even when you do not need a visible help button. The footer also provides bottom safe spacing so the last screen of content is not clipped by the system bottom area. Use `footer: false` only when you add equivalent bottom spacing yourself or fully own the page bottom.
+
+### Modal and overlays
+
+Do not call `createModal()` directly from a page that already created and mounted a `ListPage`. `ListPage` registers physical keys, touch handling, and focus state, while modal is its own key-consuming overlay. Keeping both active in the same page can make key events or residual clicks compete.
+
+Recommended pattern: keep the list page responsible only for `list.push()` navigation, put the modal in a separate child page that does not create a `ListPage`, and create/show the modal in that child page's `build()`. Close, cancel, or confirm should then call `back()` / `exit()` as appropriate.
 
 Tune scroll multipliers in `createListPage()`:
 
