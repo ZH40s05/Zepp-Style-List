@@ -93,10 +93,12 @@ Page({
 | `crownEnable` | 是否注册 `onDigitalCrown` 处理表冠/滚轮滚动 | `true` |
 | `crownStep` | 表冠/滚轮 `degree` 到滚动像素的倍率；数值越大滚轮滚动越快 | `2.5` |
 | `crownSettleMs` | 表冠/滚轮停止后等待多久重建焦点 | `180` |
-| `crownVibrate` | 表冠停止后中心条目发生切换时触发一次短而强的振动 | `true` |
+| `crownVibrate` | 表冠停止后中心条目发生切换时振动；新 API 为 20ms 短强，旧 API 为实测短中降级 | `true` |
 | `debugScroll` | 输出 `[ZOList.scroll]` 诊断日志 | `false` |
 
 公开 API 不提供 `x/y/w/h`。列表始终从 `x=0, y=0` 开始，宽高由当前屏幕 profile 决定。若你选择 `hideStatusBar: false` 并需要避让状态栏，可以在列表顶部插入 `SPACER`。
+
+表冠振动使用能力检测，而不是硬编码系统版本：支持 API_LEVEL 3.6 场景 API 时，优先调用 `getType()` 并以 `STRONG_SHORT` 场景振动 20ms；接口缺失或调用失败时，回退到 API_LEVEL 2.0 的 `setMode(VIBRATOR_SCENE_DURATION)` → `start()`。后者来自 Shimmer 在受影响旧固件上的实测映射，实际为短中振动，是有意的兼容降级。旧 mode 映射的具体修复版本尚未确认。
 
 ```js
 const list = createListPage({
@@ -113,7 +115,7 @@ list.createWidget(listWidget.SPACER, { h: 64 })
 const list = createListPage({
   touchScrollStep: 1,  // 触屏滑动倍率，默认 1
   crownStep: 2.5,     // 表冠/滚轮倍率，默认 2.5
-  crownVibrate: true, // 条目切换时短-强振动，默认开启
+  crownVibrate: true, // 新系统短强、旧系统实测短中降级，默认开启
 })
 ```
 
@@ -463,10 +465,12 @@ Page({
 | `crownEnable` | Register `onDigitalCrown` for crown/wheel scrolling | `true` |
 | `crownStep` | Multiplier from crown/wheel `degree` to scroll pixels; larger values scroll faster | `2.5` |
 | `crownSettleMs` | Delay before rebuilding focus after crown/wheel input settles | `180` |
-| `crownVibrate` | Trigger one short, strong vibration when crown settling changes the centered item | `true` |
+| `crownVibrate` | Vibrate when crown settling changes the centered item; 20ms strong-short on the scene API, tested short-medium fallback on the legacy API | `true` |
 | `debugScroll` | Print `[ZOList.scroll]` diagnostic logs | `false` |
 
 The public API does not expose `x/y/w/h`. The list always starts at `x=0, y=0` and uses the active layout profile size. If you keep the status bar visible, insert a top `SPACER` when needed.
+
+Crown haptics use capability detection instead of a hard-coded OS version. When the API_LEVEL 3.6 scene API is available, ZOList uses `getType()` and a 20ms `STRONG_SHORT` action. If that API is missing or fails, it falls back to the API_LEVEL 2.0 `setMode(VIBRATOR_SCENE_DURATION)` → `start()` sequence. Shimmer true-device testing found that this legacy mode maps to a short-medium pulse on affected old firmware, so the fallback is an intentional downgrade. The exact firmware version that fixed the legacy mode mapping is unknown.
 
 Keep the default footer (`footer: {}`) even when you do not need a visible help button. The footer also provides bottom safe spacing so the last screen of content is not clipped by the system bottom area. Use `footer: false` only when you add equivalent bottom spacing yourself or fully own the page bottom.
 
@@ -482,7 +486,7 @@ Tune scroll multipliers in `createListPage()`:
 const list = createListPage({
   touchScrollStep: 1,  // touch drag multiplier, default 1
   crownStep: 2.5,     // crown/wheel multiplier, default 2.5
-  crownVibrate: true, // short, strong feedback on item switch, enabled by default
+  crownVibrate: true, // strong-short on new systems, tested legacy downgrade on old systems
 })
 ```
 

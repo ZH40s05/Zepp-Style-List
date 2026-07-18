@@ -9,7 +9,7 @@ import {
   onKey, offKey, onDigitalCrown, offDigitalCrown, KEY_UP, KEY_DOWN, KEY_SELECT, KEY_HOME, KEY_BACK,
   KEY_EVENT_CLICK, KEY_EVENT_PRESS, KEY_EVENT_RELEASE,
 } from '@zos/interaction'
-import { Vibrator, VIBRATOR_SCENE_SHORT_STRONG } from '@zos/sensor'
+import { Vibrator, VIBRATOR_SCENE_DURATION } from '@zos/sensor'
 import { push as routerPush } from '@zos/router'
 import { getDeviceInfo, SCREEN_SHAPE_SQUARE } from '@zos/device'
 
@@ -1004,7 +1004,26 @@ export class ListPage {
     if (!this.crownVibrate) return
     try {
       if (!this._vibrator) this._vibrator = new Vibrator()
-      this._vibrator.setMode(VIBRATOR_SCENE_SHORT_STRONG)
+    } catch (e) {
+      this._debugScroll('crown_vibrate_create_error', undefined, 'err=' + this._debugValue(e))
+      return
+    }
+
+    try {
+      if (typeof this._vibrator.getType === 'function') {
+        const vibrationType = this._vibrator.getType()
+        if (vibrationType && typeof vibrationType.STRONG_SHORT === 'number') {
+          this._vibrator.start([{ type: vibrationType.STRONG_SHORT, duration: 20 }])
+          return
+        }
+      }
+    } catch (e) {
+      this._debugScroll('crown_vibrate_scene_error', undefined, 'err=' + this._debugValue(e))
+    }
+
+    try {
+      // Affected legacy firmware maps this documented duration mode to a tested short-medium pulse.
+      this._vibrator.setMode(VIBRATOR_SCENE_DURATION)
       this._vibrator.start()
     } catch (e) {
       this._debugScroll('crown_vibrate_error', undefined, 'err=' + this._debugValue(e))
