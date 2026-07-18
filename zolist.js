@@ -1004,7 +1004,8 @@ export class ListPage {
     if (!this.crownVibrate) return
     try {
       if (!this._vibrator) this._vibrator = new Vibrator()
-      this._vibrator.start({ mode: VIBRATOR_SCENE_SHORT_STRONG })
+      this._vibrator.setMode(VIBRATOR_SCENE_SHORT_STRONG)
+      this._vibrator.start()
     } catch (e) {
       this._debugScroll('crown_vibrate_error', undefined, 'err=' + this._debugValue(e))
     }

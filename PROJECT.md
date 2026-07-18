@@ -24,6 +24,9 @@
 - Decision: trigger haptic feedback once per settled crown-driven focus change, not on every raw crown event.
 - Reason: this maps feedback to the visible item switch and avoids vibration spam or touch-scroll feedback.
 - Date: 2026-07-18
+- Decision: configure `VIBRATOR_SCENE_SHORT_STRONG` with `setMode()` before calling parameterless `start()`.
+- Reason: a Balance user running a directly compiled example reported no vibration with `start({ mode })`; use the exact official example sequence to remove a firmware-call-path variable.
+- Date: 2026-07-18
 
 ## Dependencies And Reuse
 
@@ -33,4 +36,4 @@
 
 ## Open Issues
 
-- Confirm the 20ms strong pulse on representative round and square devices.
+- Re-test the 20ms strong pulse on the reporting Balance device after installing the rebuilt example.
