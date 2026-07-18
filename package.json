@@ -16,6 +16,7 @@
   },
   "files": [
     "zslist.js",
+    "asset/",
     "example/"
   ],
   "directories": {

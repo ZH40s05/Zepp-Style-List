@@ -4,6 +4,16 @@
 
 ---
 
+## 界面预览 / Screenshots
+
+| 主菜单 / Main menu | 复合标题条目 / Composite text row |
+| --- | --- |
+| <img src="asset/screenshot-main-menu.png" alt="ZSList 示例主菜单" width="240"> | <img src="asset/screenshot-composite-text-row.png" alt="ZSList 复合标题条目" width="240"> |
+
+| 开关与复选框 / Switch and checkbox | 单选框 / Radio |
+| --- | --- |
+| <img src="asset/screenshot-switch-row.png" alt="ZSList 开关和复选框条目" width="240"> | <img src="asset/screenshot-radio-row.png" alt="ZSList 单选框条目" width="240"> |
+
 ## 中文
 
 ### 是什么
