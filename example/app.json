@@ -2,12 +2,12 @@
   "configVersion": "v3",
   "app": {
     "appId": 20001,
-    "appName": "Zepp Style List",
+    "appName": "Zepp-Style-List",
     "appType": "app",
     "version": { "code": 1, "name": "1.0.0" },
     "icon": "icon.png",
     "vender": "ZHAO",
-    "description": "Zepp Style List: ZeppOS system-style list example (Balance 480 round)"
+    "description": "Zepp-Style-List: ZeppOS system-style list example (Balance 480 round)"
   },
   "permissions": ["data:os.device.info"],
   "runtime": {
@@ -34,8 +34,8 @@
     }
   },
   "i18n": {
-    "en-US": { "appName": "Zepp Style List" },
-    "zh-CN": { "appName": "Zepp Style List" }
+    "en-US": { "appName": "Zepp-Style-List" },
+    "zh-CN": { "appName": "Zepp-Style-List" }
   },
   "defaultLanguage": "zh-CN"
 }
