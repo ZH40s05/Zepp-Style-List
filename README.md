@@ -31,7 +31,7 @@ const item = list.createWidget(listWidget.SWITCH, RowParam)
 
 ```bash
 # npm
-npm install @zh40s05/zslist
+npm install @zh40s05/zepp-style-list
 
 # 手动复制
 cp zslist.js your-app/utils/zslist.js
@@ -424,7 +424,7 @@ It is not a built-in ZeppOS widget, but the API intentionally resembles `createW
 ### Install
 
 ```bash
-npm install @zh40s05/zslist
+npm install @zh40s05/zepp-style-list
 cp zslist.js your-app/utils/zslist.js
 ```
 

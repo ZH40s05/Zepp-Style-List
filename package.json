@@ -1,5 +1,5 @@
 {
-  "name": "@zh40s05/zslist",
+  "name": "@zh40s05/zepp-style-list",
   "version": "0.1.4",
   "description": "Zepp-Style-List：支持按键焦点、触屏焦点、表冠实时焦点切换与滚动吸附的 ZeppOS 系统风格列表控件 / A ZeppOS system-style list component with key focus, touch focus, real-time crown focus switching and scroll snapping",
   "main": "zslist.js",
